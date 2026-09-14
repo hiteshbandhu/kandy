@@ -81,7 +81,7 @@ export function Composer({
         {/* Present for screen readers; the placeholder is the visible prompt. */}
         <DialogTitle className="sr-only">New note</DialogTitle>
 
-        <div className="px-4 pt-4 pb-3">
+        <div className="px-5 pt-5 pb-3">
           {/*
             Both fields sit inside one drop target, and both take a pasted
             screenshot — the clipboard does not know which box you were in.
@@ -89,14 +89,16 @@ export function Composer({
           <Attachments files={files} onChange={setFiles}>
             {({ onPaste }) => (
               /*
-                One field surface holding both inputs. They were flush against
-                the dialog's own edge with no inset of their own, which read as
-                text dropped onto the panel rather than something to type into.
-                The border is the cheapest way to say "this is the input", and
-                focus-within lights the whole thing so the two boxes keep
-                behaving as one field.
+                No box around these.
+                
+                Wrapping both fields in a border was worse than the flush
+                version it replaced: an outline turns the room left for typing
+                into a visible empty rectangle, and it fenced the Attach button
+                out of the thing it belongs to. A hairline between the two
+                fields says "these are separate" without drawing a container
+                around whitespace.
               */
-              <div className="border-hairline bg-bg/40 focus-within:border-grape/40 focus-within:ring-grape/15 space-y-2 rounded-xl border px-3.5 py-3 transition-colors focus-within:ring-3">
+              <div>
                 <input
                   autoFocus
                   value={title}
@@ -106,7 +108,7 @@ export function Composer({
                     if (!e.defaultPrevented) pasteIntoTitle(e)
                   }}
                   placeholder="What should the agent do?"
-                  className="placeholder:text-muted-foreground/45 w-full bg-transparent text-[16px] font-medium tracking-[-0.01em] outline-none placeholder:font-normal"
+                  className="placeholder:text-muted-foreground/40 w-full bg-transparent py-1.5 text-[17px] font-medium tracking-[-0.015em] outline-none placeholder:font-normal"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
                       e.preventDefault()
@@ -116,6 +118,8 @@ export function Composer({
                     e.stopPropagation()
                   }}
                 />
+
+                <div className="bg-hairline my-2 h-px" />
 
                 {/*
                   The base Textarea is a bordered field with its own padding and
@@ -133,7 +137,7 @@ export function Composer({
                   // only files are intercepted.
                   onPaste={onPaste}
                   placeholder="Constraints, how to verify — optional"
-                  className="placeholder:text-muted-foreground/45 min-h-[92px] resize-none border-0 bg-transparent p-0 text-[13.5px] leading-[1.6] shadow-none focus-visible:ring-0 dark:bg-transparent"
+                  className="placeholder:text-muted-foreground/40 min-h-[72px] resize-none border-0 bg-transparent p-0 py-1 text-[13.5px] leading-[1.6] shadow-none focus-visible:ring-0 dark:bg-transparent"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(!e.shiftKey)
                     e.stopPropagation()
