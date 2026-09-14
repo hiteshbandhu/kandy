@@ -138,6 +138,7 @@ files) queue work onto a board rather than doing it inline. Copy it to
 | [Interface](docs/10-interface.md) | Design rules, and a direction we reverted |
 | [Going multiplayer](docs/11-going-multiplayer.md) | Sharing a note with a teammate — the bet, kept as notes |
 | [Spike: git share](docs/12-spike-git-share.md) | Two laptops over an orphan branch — what held, what didn't |
+| [Diagrams](docs/13-diagrams.md) | The architecture drawn, against the files that exist |
 
 ## Talking to the daemon
 
