@@ -81,14 +81,22 @@ export function Composer({
         {/* Present for screen readers; the placeholder is the visible prompt. */}
         <DialogTitle className="sr-only">New note</DialogTitle>
 
-        <div className="px-5 pt-5 pb-2">
+        <div className="px-4 pt-4 pb-3">
           {/*
             Both fields sit inside one drop target, and both take a pasted
             screenshot — the clipboard does not know which box you were in.
           */}
           <Attachments files={files} onChange={setFiles}>
             {({ onPaste }) => (
-              <div className="space-y-3">
+              /*
+                One field surface holding both inputs. They were flush against
+                the dialog's own edge with no inset of their own, which read as
+                text dropped onto the panel rather than something to type into.
+                The border is the cheapest way to say "this is the input", and
+                focus-within lights the whole thing so the two boxes keep
+                behaving as one field.
+              */
+              <div className="border-hairline bg-bg/40 focus-within:border-grape/40 focus-within:ring-grape/15 space-y-2 rounded-xl border px-3.5 py-3 transition-colors focus-within:ring-3">
                 <input
                   autoFocus
                   value={title}
@@ -98,7 +106,7 @@ export function Composer({
                     if (!e.defaultPrevented) pasteIntoTitle(e)
                   }}
                   placeholder="What should the agent do?"
-                  className="placeholder:text-muted-foreground/70 w-full bg-transparent text-[16px] font-medium tracking-[-0.01em] outline-none"
+                  className="placeholder:text-muted-foreground/45 w-full bg-transparent text-[16px] font-medium tracking-[-0.01em] outline-none placeholder:font-normal"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
                       e.preventDefault()
@@ -124,8 +132,8 @@ export function Composer({
                   // Text pastes into the detail exactly as the browser does it;
                   // only files are intercepted.
                   onPaste={onPaste}
-                  placeholder="Detail — constraints, how to verify it, anything the agent needs. Optional."
-                  className="min-h-[92px] resize-none border-0 bg-transparent p-0 text-[13.5px] leading-[1.6] shadow-none focus-visible:ring-0 dark:bg-transparent"
+                  placeholder="Constraints, how to verify — optional"
+                  className="placeholder:text-muted-foreground/45 min-h-[92px] resize-none border-0 bg-transparent p-0 text-[13.5px] leading-[1.6] shadow-none focus-visible:ring-0 dark:bg-transparent"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(!e.shiftKey)
                     e.stopPropagation()

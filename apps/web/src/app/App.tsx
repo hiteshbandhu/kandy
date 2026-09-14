@@ -9,6 +9,7 @@ import { Composer } from "@/features/notes/Composer"
 import { NewBoardDialog } from "@/features/boards/NewBoardDialog"
 import { useBoard } from "@/hooks/useBoard"
 import { useTheme } from "@/hooks/useTheme"
+import { useRoute } from "@/hooks/useRoute"
 import { TooltipProvider } from "@/ui"
 import { CommandPalette } from "./CommandPalette"
 import { SettingsPage } from "./SettingsPage"
@@ -20,10 +21,9 @@ import { TriageList } from "./TriageList"
 export function App() {
   const client = useMemo(() => new KandyClient({ baseUrl: "/api", token: daemonToken }), [])
   const [boards, setBoards] = useState<Board[]>([])
-  const [boardId, setBoardId] = useState<string | null>(null)
   const [agents, setAgents] = useState<AgentInfo[]>([])
   const [forge, setForge] = useState<Forge | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
+
   const [composing, setComposing] = useState(false)
   const [newBoard, setNewBoard] = useState(false)
   const [palette, setPalette] = useState(false)
@@ -35,8 +35,50 @@ export function App() {
    * screenshot that never arrives looks exactly like an agent ignoring it.
    */
   const [notice, setNotice] = useState<string | null>(null)
-  const [page, setPage] = useState<View>("board")
   const { theme, setTheme } = useTheme()
+
+  /*
+   * Where you are lives in the URL rather than in three useStates, so a
+   * refresh — or a link pasted to yourself — lands back on the same note.
+   *
+   * These keep the setter shapes the rest of the component already uses,
+   * including the updater-function forms, so the change is where the state is
+   * kept and not how every call site talks to it.
+   */
+  const { route, go } = useRoute()
+  const { page, boardId, noteId: selected } = route
+
+  type Update<T> = T | ((cur: T) => T)
+  const apply = <T,>(v: Update<T>, cur: T): T =>
+    typeof v === "function" ? (v as (c: T) => T)(cur) : v
+
+  /*
+   * Moving *away* closes the open note; re-affirming where you already are
+   * does not. The difference matters on boot: resolving the default board
+   * fires setBoardId with the board the URL already named, and clearing the
+   * note unconditionally there threw away the deep link on every refresh —
+   * which is the entire thing this is for.
+   */
+  const setPage = useCallback(
+    (v: Update<View>) =>
+      go((cur) => {
+        const page = apply(v, cur.page)
+        return { ...cur, page, noteId: page === cur.page ? cur.noteId : null }
+      }),
+    [go],
+  )
+  const setSelected = useCallback(
+    (v: Update<string | null>) => go((cur) => ({ ...cur, noteId: apply(v, cur.noteId) })),
+    [go],
+  )
+  const setBoardId = useCallback(
+    (v: Update<string | null>, replace = false) =>
+      go((cur) => {
+        const boardId = apply(v, cur.boardId)
+        return { ...cur, boardId, noteId: boardId === cur.boardId ? cur.noteId : null }
+      }, { replace }),
+    [go],
+  )
 
   const { view, connected, error, act, transcript, activity, loadTranscript, clearError } =
     useBoard(boardId)
@@ -44,7 +86,7 @@ export function App() {
   useEffect(() => {
     void client.boards().then((r) => {
       setBoards(r.boards)
-      setBoardId((id) => id ?? r.boards[0]?.id ?? null)
+      setBoardId((id) => id ?? r.boards[0]?.id ?? null, true)
     })
     void client.agents().then((r) => setAgents(r.agents))
   }, [client])
@@ -115,7 +157,10 @@ export function App() {
     setBoards(r.boards)
     // Fall through to whatever is left, so removing the open board doesn't
     // leave the app staring at nothing.
-    setBoardId((cur) => nextId ?? (r.boards.some((b) => b.id === cur) ? cur : (r.boards[0]?.id ?? null)))
+    setBoardId(
+      (cur) => nextId ?? (r.boards.some((b) => b.id === cur) ? cur : (r.boards[0]?.id ?? null)),
+      true,
+    )
   }
 
   return (
