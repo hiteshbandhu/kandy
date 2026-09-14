@@ -50,6 +50,8 @@ export type NoteDetailProps = {
   onReview: (decision: "merge" | "discard") => void
   /** Answer one waiting question. */
   onAnswer: (prompt: PermissionPrompt, answer: Answer) => Promise<void>
+  /** Ask the surrounding pane for more or less room. */
+  onWiden?: (wide: boolean) => void
   /** Raise this note to full access and continue it. */
   onEscalate: () => Promise<void>
   onOpenPr: () => Promise<void>
@@ -217,7 +219,18 @@ export function NoteDetail(p: NoteDetailProps) {
 
           <div className="-mr-1.5 -mt-1 flex shrink-0 items-center">
             <Hint text={full ? "Narrow" : "Widen — stream beside diff"}>
-              <Button variant="ghost" size="icon" onClick={() => setFull((f) => !f)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setFull((f) => {
+                    // The split needs the room to be worth anything, so the
+                    // button asks for it. Dragging afterwards still wins.
+                    p.onWiden?.(!f)
+                    return !f
+                  })
+                }
+              >
                 {full ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
               </Button>
             </Hint>
@@ -475,14 +488,11 @@ export function NoteDetail(p: NoteDetailProps) {
   )
 
   // Never an overlay. Covering the sidebar to read a diff means losing the one
-  // thing the app is for — seeing what else is waiting on you.
+  // thing the app is for — seeing what else is waiting on you. It is a resizable
+  // pane rather than two fixed widths: how much room a diff needs is a property
+  // of the diff, not something this component can know.
   return (
-    <aside
-      className={cn(
-        "bg-card flex shrink-0 flex-col border-l transition-[width] duration-200",
-        full ? "w-[min(1000px,62vw)]" : "w-[420px]",
-      )}
-    >
+    <aside className="bg-card flex h-full w-full flex-col border-l">
       {body}
 
       <Confirm

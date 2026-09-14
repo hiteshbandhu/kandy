@@ -12,6 +12,11 @@ export { Separator } from "@/components/ui/separator"
 export { Switch } from "@/components/ui/switch"
 export { ScrollArea } from "@/components/ui/scroll-area"
 export {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable"
+export {
   Select,
   SelectContent,
   SelectItem,
