@@ -60,7 +60,7 @@ export function Transcript({ frames, prompt, onEditPrompt }: {
       <div className="border-b px-4 py-1.5">
         <button
           onClick={toggleTools}
-          className="text-muted-foreground/70 hover:text-foreground hover:bg-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors"
+          className="text-muted-foreground/70 hover:text-foreground hover:bg-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] transition-colors"
         >
           {showTools ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
           {showTools ? "Hide" : "Show"} {toolCount} tool {toolCount === 1 ? "call" : "calls"}
@@ -77,10 +77,10 @@ export function Transcript({ frames, prompt, onEditPrompt }: {
     >
       {(prompt || onEditPrompt) && (
         <div className="rounded-xl border border-hairline bg-raised px-3 py-3">
-          <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-faint">
+          <div className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-faint">
             Prompt
           </div>
-          <div className="mt-1.5 whitespace-pre-wrap text-[13px] leading-[1.6] text-dim">
+          <div className="mt-1.5 whitespace-pre-wrap text-[14.5px] leading-[1.6] text-dim">
             {onEditPrompt ? (
               <InlineEdit
                 value={prompt}
@@ -96,7 +96,7 @@ export function Transcript({ frames, prompt, onEditPrompt }: {
 
 
       {frames.length === 0 && (
-        <p className="py-6 text-center text-[12px] text-faint">Nothing yet.</p>
+        <p className="py-6 text-center text-[13px] text-faint">Nothing yet.</p>
       )}
 
       {shown.map((f) => (
@@ -114,11 +114,11 @@ function Frame({ frame: f }: { frame: TranscriptFrame }) {
   if (denied || f.role === "error") {
     return (
       <div className="rounded-xl border border-[#3d2621] bg-[#1a1211] px-3 py-3">
-        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-berry">
+        <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-berry">
           <span className="h-1.5 w-1.5 rounded-full bg-berry" />
           {denied ? "Refused" : "Error"}
         </div>
-        <p className="mt-1.5 whitespace-pre-wrap break-words text-[12.5px] leading-[1.55] text-[#e8b3a8]">
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-[14px] leading-[1.55] text-[#e8b3a8]">
           {f.text}
         </p>
       </div>
@@ -128,8 +128,8 @@ function Frame({ frame: f }: { frame: TranscriptFrame }) {
   if (f.role === "user") {
     return (
       <div className="rounded-xl border border-[#22304d] bg-[#121826] px-3 py-3">
-        <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-sky">You</div>
-        <p className="mt-1.5 whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-[#c7d6f5]">
+        <div className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-sky">You</div>
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-[14.5px] leading-[1.6] text-[#c7d6f5]">
           {f.text}
         </p>
       </div>
@@ -139,10 +139,10 @@ function Frame({ frame: f }: { frame: TranscriptFrame }) {
   if (f.role === "tool") {
     return (
       <div className="flex items-baseline gap-2.5 px-1 py-0.5">
-        <span className="shrink-0 rounded-md bg-raised px-1.5 py-0.5 text-[10.5px] font-medium text-dim">
+        <span className="shrink-0 rounded-md bg-raised px-1.5 py-0.5 text-[11.5px] font-medium text-dim">
           {f.meta ?? "tool"}
         </span>
-        <span className="truncate font-mono text-[11.5px] text-faint" title={f.text}>
+        <span className="truncate font-mono text-[12.5px] text-faint" title={f.text}>
           {f.text}
         </span>
       </div>
@@ -156,7 +156,7 @@ function Frame({ frame: f }: { frame: TranscriptFrame }) {
     return (
       <div className="flex items-center gap-2.5 px-1 py-1.5">
         <span className="h-px w-4 shrink-0 bg-hairline" />
-        <span className="min-w-0 text-[11px] leading-relaxed text-faint">{f.text}</span>
+        <span className="min-w-0 text-[12px] leading-relaxed text-faint">{f.text}</span>
         <span className="h-px flex-1 bg-hairline" />
       </div>
     )

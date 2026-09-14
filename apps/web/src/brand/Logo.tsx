@@ -1,15 +1,16 @@
 import { cn } from "@/lib/utils"
 
 /**
- * The kandy mark: three notes assembling into a lowercase "k".
+ * The kandy mark: three lanes of work inside one board.
  *
- * Designed by Codex, reviewed side by side against the previous striped-note
- * mark at 16/20/24/44/72px on both themes. The note lost: at sidebar size its
- * stripes collapse into an unreadable smudge, while a letterform still reads.
- * The three pieces are the idea — independent jobs that add up to one thing.
+ * This replaces a lowercase "k" built from the same three candy pieces. The
+ * letterform said nothing about the product; a rail holding three parallel
+ * bars is literally what kandy is — one board, several agents, each in its
+ * own lane.
  *
- * Changed from what it proposed: the arms were three units clear of the stem,
- * which at 16px reads as a broken glyph rather than a deliberate gap.
+ * The rail is stroked rather than filled so the bars read as sitting *inside*
+ * something, and it carries ink at low opacity so it never competes with the
+ * three colours it holds.
  */
 export function Logo({ size = 20, className }: { size?: number; className?: string }) {
   return (
@@ -20,9 +21,20 @@ export function Logo({ size = 20, className }: { size?: number; className?: stri
       className={cn("shrink-0", className)}
       aria-hidden="true"
     >
-      <rect x="3" y="4" width="8" height="24" rx="2" fill="var(--color-berry)" />
-      <path d="M12.5 11 20 4h8L16.5 15h-4Z" fill="var(--color-lemon)" />
-      <path d="M12.5 18h4L28 28h-8l-7.5-7Z" fill="var(--color-mint)" />
+      <rect
+        x="3.5"
+        y="5.5"
+        width="25"
+        height="21"
+        rx="4"
+        fill="none"
+        stroke="var(--color-ink)"
+        strokeWidth="1.4"
+        opacity="0.35"
+      />
+      <rect x="7" y="9" width="4.2" height="14" rx="1.5" fill="var(--color-berry)" />
+      <rect x="13.9" y="9" width="4.2" height="14" rx="1.5" fill="var(--color-lemon)" />
+      <rect x="20.8" y="9" width="4.2" height="14" rx="1.5" fill="var(--color-mint)" />
     </svg>
   )
 }

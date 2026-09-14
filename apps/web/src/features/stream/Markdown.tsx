@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
  */
 export function Markdown({ children, className }: { children: string; className?: string }) {
   return (
-    <div className={cn("md text-[13px] leading-[1.65] text-ink", className)}>
+    <div className={cn("md text-[14.5px] leading-[1.65] text-ink", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -25,12 +25,12 @@ export function Markdown({ children, className }: { children: string; className?
             return inline ? (
               <code
                 {...props}
-                className="rounded bg-raised px-1 py-px font-mono text-[11.5px] text-[#d9c8a0]"
+                className="rounded bg-raised px-1 py-px font-mono text-[13px] text-[#d9c8a0]"
               >
                 {children}
               </code>
             ) : (
-              <code {...props} className="font-mono text-[11.5px]">
+              <code {...props} className="font-mono text-[13px]">
                 {children}
               </code>
             )

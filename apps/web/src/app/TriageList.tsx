@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { ChevronRight } from "lucide-react"
 import type { ActivityFrame, BoardView, Note, PermissionPrompt } from "@kandy/core"
-import { Button, Empty, Kbd } from "@/ui"
+import { Button, Confirm, Empty, Kbd } from "@/ui"
 import { Logo } from "@/brand/Logo"
 import { GROUPS, LOOK } from "@/features/notes/status"
 import { cn } from "@/lib/utils"
@@ -21,16 +21,27 @@ export function TriageList({
   selectedId,
   onSelect,
   onCompose,
+  onDelete,
 }: {
   view: BoardView
   activity: Record<string, ActivityFrame>
   selectedId: string | null
   onSelect: (id: string) => void
   onCompose: () => void
+  onDelete: (id: string) => void
 }) {
   // Done is collapsed to start: eight finished notes should not take as much
   // room as the one thing waiting on you.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set(["done"]))
+
+  /* One dialog for the whole list rather than one per row: a Confirm inside
+     NoteRow would mount a Dialog for every note on the board, and NoteRow is
+     memoised precisely because this list repaints on every streamed event. */
+  const [pending, setPending] = useState<Note | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  /* Stable identity, or every row's memo() breaks on each render. */
+  const requestDelete = useCallback((note: Note) => setPending(note), [])
 
   const groups = useMemo(() => {
     return GROUPS.map((g) => ({
@@ -135,6 +146,7 @@ export function TriageList({
                 selected={selectedId === note.id}
                 statusImplied={g.statuses.length === 1}
                 onSelect={onSelect}
+                onRequestDelete={requestDelete}
               />
             ))}
           </div>
@@ -142,6 +154,28 @@ export function TriageList({
         )
       })}
 
+      <Confirm
+        open={pending !== null}
+        onOpenChange={(v) => !v && setPending(null)}
+        title="Delete this note"
+        body={
+          <>
+            Removes the note and its history from the board.
+            {pending?.branch ? " Its branch is left in the repository." : ""} This cannot be undone.
+          </>
+        }
+        facts={pending ? [{ label: "Note", value: pending.title }] : undefined}
+        confirmLabel="Delete"
+        destructive
+        busy={busy}
+        onConfirm={() => {
+          if (!pending) return
+          setBusy(true)
+          onDelete(pending.id)
+          setBusy(false)
+          setPending(null)
+        }}
+      />
     </div>
   )
 }

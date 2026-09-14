@@ -138,6 +138,11 @@ export function App() {
           setSelected(null)
         }}
         onNewBoard={() => setNewBoard(true)}
+        onNewNote={() => {
+          if (!boardId) return void setNewBoard(true)
+          setPage("board")
+          setComposing(true)
+        }}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -178,6 +183,11 @@ export function App() {
               selectedId={selected}
               onSelect={setSelected}
               onCompose={() => setComposing(true)}
+              onDelete={(id) => {
+                // Close the detail pane if it is showing the note being removed.
+                setSelected((cur) => (cur === id ? null : cur))
+                void act((c) => c.deleteNote(id))
+              }}
             />
           ) : boards.length === 0 ? (
             <Empty

@@ -186,7 +186,7 @@ body {
 .md li { margin: 0.15em 0; }
 .md ul { list-style: disc; }
 .md ol { list-style: decimal; }
-.md h1, .md h2, .md h3, .md h4 { margin: 1em 0 0.4em; font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+.md h1, .md h2, .md h3, .md h4 { margin: 1em 0 0.4em; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .md strong { font-weight: 600; color: var(--color-ink); }
 .md em { font-style: italic; }
 .md pre {

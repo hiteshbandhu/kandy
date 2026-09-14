@@ -8,7 +8,7 @@ import {
   Sun,
 } from "lucide-react"
 import type { AgentInfo, Board, BoardView } from "@kandy/core"
-import { Button, Hint, Separator, StatusPill } from "@/ui"
+import { Button, Hint, Kbd, Separator, StatusPill } from "@/ui"
 import { Wordmark } from "@/brand/Logo"
 import { AgentMark, agentLabel } from "@/features/agents/AgentMark"
 import type { Theme } from "@/hooks/useTheme"
@@ -36,6 +36,7 @@ export function Sidebar({
   onTheme,
   onBoardChange,
   onNewBoard,
+  onNewNote,
 }: {
   boards: Board[]
   boardId: string | null
@@ -48,6 +49,7 @@ export function Sidebar({
   onTheme: (t: Theme) => void
   onBoardChange: (id: string) => void
   onNewBoard: () => void
+  onNewNote: () => void
 }) {
   const notes = view?.notes ?? []
   const n = (f: (s: string) => boolean) => notes.filter((x) => f(x.status)).length
@@ -64,19 +66,20 @@ export function Sidebar({
 
   return (
     <aside className="bg-sidebar flex w-[244px] shrink-0 flex-col border-r">
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+      <div className="flex items-center px-4 pt-4 pb-3">
         <Wordmark />
-        <Hint text={connected ? "Live" : "Reconnecting…"}>
-          <span
-            className={cn(
-              "size-1.5 rounded-full",
-              connected ? "bg-mint" : "bg-lemon breathe",
-            )}
-          />
-        </Hint>
       </div>
 
       <nav className="space-y-0.5 px-2.5">
+        {/* The primary action, built from the same NavItem as the rows under
+            it — a filled button here spoke a different visual language from
+            everything else in the sidebar. It leads because writing a note is
+            what you came to do, and carries its shortcut the way the board's
+            own composer does. */}
+        <NavItem icon={Plus} label="New note" active={false} onClick={onNewNote}>
+          <Kbd>C</Kbd>
+        </NavItem>
+
         <NavItem icon={LayoutList} label="Board" active={page === "board"} onClick={() => onPage("board")}>
           {waiting > 0 ? (
             <StatusPill tone="lemon" pulse className="px-1.5 py-0 text-[10px]">

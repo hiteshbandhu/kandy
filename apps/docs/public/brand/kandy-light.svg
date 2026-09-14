@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 196" width="360" height="196"
+     role="img" aria-label="kandy — a board for orchestrating coding agents">
+  <title>kandy</title>
+  <g transform="translate(117.6 -13.45) scale(3.9)">
+    <rect x="3.5" y="5.5" width="25" height="21" rx="4" fill="none"
+          stroke="#221f1a" stroke-width="1.4" opacity="0.45"/>
+    <rect x="7" y="9" width="4.2" height="14" rx="1.5" fill="#c2527c"/>
+    <rect x="13.9" y="9" width="4.2" height="14" rx="1.5" fill="#a8802a"/>
+    <rect x="20.8" y="9" width="4.2" height="14" rx="1.5" fill="#3d9c73"/>
+  </g>
+  <text x="180" y="150" text-anchor="middle"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="46" font-weight="600" letter-spacing="-1.5" fill="#221f1a">kandy</text>
+  <text x="180" y="178" text-anchor="middle"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="13.5" letter-spacing="0.2" fill="#6b6559">a board for orchestrating coding agents</text>
+</svg>

@@ -1,6 +1,13 @@
-# kandy
+<div align="center">
 
-A board for orchestrating coding agents.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/docs/public/brand/kandy-dark.svg">
+  <img alt="kandy — a board for orchestrating coding agents" src="apps/docs/public/brand/kandy-light.svg" width="340">
+</picture>
+
+</div>
+
+<br>
 
 Sticky notes are units of agent work. Write a note, assign it to an agent
 (Claude Code, Codex, and more to come), and it runs — isolated in its own git

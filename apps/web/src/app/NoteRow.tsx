@@ -1,4 +1,5 @@
 import { memo } from "react"
+import { Trash2 } from "lucide-react"
 import type { ActivityFrame, Note, Run } from "@kandy/core"
 import { ActivityLine, Hint, StatusPill } from "@/ui"
 import { AgentMark } from "@/features/agents/AgentMark"
@@ -29,6 +30,7 @@ export const NoteRow = memo(function NoteRow({
   selected,
   statusImplied,
   onSelect,
+  onRequestDelete,
 }: {
   note: Note
   run: Run | undefined
@@ -37,6 +39,8 @@ export const NoteRow = memo(function NoteRow({
   /** The group heading already names this status; don't repeat it on the row. */
   statusImplied?: boolean
   onSelect: (id: string) => void
+  /** Opens the board's confirm dialog; the row never deletes on its own. */
+  onRequestDelete: (note: Note) => void
 }) {
   const look = LOOK[note.status]
   const live = note.status === "running" || note.status === "queued"
@@ -44,6 +48,11 @@ export const NoteRow = memo(function NoteRow({
   useTick(live)
 
   return (
+    /* The delete control is a sibling of the row rather than a child: the row
+       is itself a <button>, and a button nested in a button is invalid markup
+       that browsers resolve by dropping the inner one. Overlaying it also
+       means a click on delete never reaches the row's own onClick. */
+    <div className="group/row relative">
     <button
       onClick={() => onSelect(note.id)}
       data-note={note.id}
@@ -68,7 +77,10 @@ export const NoteRow = memo(function NoteRow({
           {run && (
             <span
               className={cn(
-                "shrink-0 text-[11px] tabular-nums",
+                "shrink-0 text-[11px] tabular-nums transition-opacity",
+                /* Steps aside on hover rather than being covered up — the
+                   delete button sits in this corner. */
+                "group-hover/row:opacity-0",
                 live ? "text-lemon" : "text-muted-foreground/60",
               )}
             >
@@ -125,5 +137,22 @@ export const NoteRow = memo(function NoteRow({
         )}
       </span>
     </button>
+
+      <button
+        type="button"
+        onClick={() => onRequestDelete(note)}
+        aria-label={`Delete note: ${note.title}`}
+        title="Delete note"
+        className={cn(
+          "absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 transition",
+          "text-muted-foreground/70 hover:bg-berry/12 hover:text-berry",
+          /* Hidden until wanted, but never unreachable: keyboard focus brings
+             it back, so it is not a mouse-only action. */
+          "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100",
+        )}
+      >
+        <Trash2 className="size-3.5" />
+      </button>
+    </div>
   )
 })
