@@ -1,8 +1,17 @@
 import { daemonToken } from "@/lib/daemon-token"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { cn } from "@/lib/utils"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { KandyClient } from "@kandy/client"
+import { usePanelRef } from "react-resizable-panels"
 import type { AgentId, AgentInfo, Board, Forge } from "@kandy/core"
-import { Button, Empty, LoadingBlock } from "@/ui"
+import {
+  Button,
+  Empty,
+  LoadingBlock,
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/ui"
 import { Backdrop } from "@/brand/Backdrop"
 import { Logo } from "@/brand/Logo"
 import { Composer } from "@/features/notes/Composer"
@@ -17,6 +26,17 @@ import { UsagePage } from "./UsagePage"
 import { NoteDetail } from "./NoteDetail"
 import { Sidebar, type View } from "./Sidebar"
 import { TriageList } from "./TriageList"
+
+const DETAIL_SIZE_KEY = "kandy.detail-size"
+
+function readDetailSize(): number {
+  try {
+    const n = Number(localStorage.getItem(DETAIL_SIZE_KEY))
+    return Number.isFinite(n) && n >= 22 && n <= 78 ? n : 34
+  } catch {
+    return 34
+  }
+}
 
 export function App() {
   const client = useMemo(() => new KandyClient({ baseUrl: "/api", token: daemonToken }), [])
@@ -45,6 +65,29 @@ export function App() {
    * including the updater-function forms, so the change is where the state is
    * kept and not how every call site talks to it.
    */
+  /*
+   * How wide you like the detail pane, kept across sessions.
+   *
+   * The library's own layout persistence cannot do this here: the pane
+   * collapses when you close a note, and it saves that collapsed layout, so
+   * reopening later restored 0 and fell back to the minimum. Storing only
+   * expanded sizes keeps "wide enough for a diff" meaning what it did before.
+   *
+   * Sizes are strings because v4 reads a bare number as *pixels* and only a
+   * string as a percentage — passing 62 asks for 62px, not 62%.
+   */
+  const detailPanel = usePanelRef()
+  const detailSize = useRef(readDetailSize())
+  const rememberDetailSize = useCallback((pct: number) => {
+    if (pct < 1) return // A collapse is not a width.
+    detailSize.current = pct
+    try {
+      localStorage.setItem(DETAIL_SIZE_KEY, String(pct))
+    } catch {
+      // Blocked storage just means it lasts the session.
+    }
+  }, [])
+
   const { route, go } = useRoute()
   const { page, boardId, noteId: selected } = route
 
@@ -103,6 +146,17 @@ export function App() {
   useEffect(() => {
     if (note?.runId) void loadTranscript(note.runId)
   }, [note?.runId, loadTranscript])
+
+  // Open and close the pane with the note, keeping whatever width it was
+  // dragged to — collapse/expand restores the last size, a resize would not.
+  useEffect(() => {
+    const panel = detailPanel.current
+    if (!panel) return
+    // resize() rather than expand(): expand restores whatever the library last
+    // saw, which after a reload is nothing.
+    if (note) panel.resize(String(detailSize.current))
+    else panel.collapse()
+  }, [note, detailPanel])
 
   /** Ordered exactly as the list renders, so j/k match what the eye does. */
   const ordered = useMemo(() => view?.notes.map((n) => n.id) ?? [], [view])
@@ -190,7 +244,18 @@ export function App() {
         }}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      {/*
+        The board and the open note split the space, with a handle between
+        them. Two hard-coded widths could not be right for both a one-line
+        status check and a thousand-line diff, and the size is remembered per
+        person rather than decided here.
+      */}
+      <ResizablePanelGroup
+        orientation="horizontal"
+        className="min-w-0 flex-1"
+      >
+        <ResizablePanel id="board" minSize="28">
+          <main className="flex h-full min-w-0 flex-col">
         {(error ?? notice) && (
           <button
             onClick={() => {
@@ -250,10 +315,33 @@ export function App() {
             <LoadingBlock className="pt-24" label="Opening the board" />
           )}
         </div>
-      </main>
+          </main>
+        </ResizablePanel>
 
-      {note && view && (
-        <NoteDetail
+        {/*
+          The detail pane stays mounted and collapses, rather than unmounting
+          with its note.
+
+          A panel that comes and goes changes the group's shape, and the group
+          saves its layout by shape: on reload the board mounts alone, that
+          one-panel layout is written over the two-panel one, and the pane you
+          had dragged wider comes back at its default. Collapsing keeps the
+          shape — and the remembered width — stable.
+        */}
+        <ResizableHandle withHandle className={cn(!note && "hidden")} />
+        <ResizablePanel
+          id="detail"
+          panelRef={detailPanel}
+          collapsible
+          collapsedSize="0"
+          defaultSize={String(detailSize.current)}
+          onResize={(size) => rememberDetailSize(size.asPercentage)}
+          minSize="22"
+          maxSize="78"
+        >
+          {note && view && (
+            <NoteDetail
+          onWiden={(wide) => detailPanel.current?.resize(wide ? "62" : "34")}
           note={note}
           view={view}
           agents={agents}
@@ -310,7 +398,9 @@ export function App() {
           }}
           loadDiff={() => act((c) => c.diff(note.id))}
         />
-      )}
+          )}
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       {composing && view && (
         <Composer
