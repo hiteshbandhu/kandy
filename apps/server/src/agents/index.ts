@@ -6,6 +6,8 @@ import type { AgentAdapter } from "./types.js"
 import { codex } from "./codex.js"
 import { claude } from "./claude.js"
 import { aider } from "./aider.js"
+import { cursor } from "./cursor.js"
+import { opencode } from "./opencode.js"
 
 const exec = promisify(execFile)
 
@@ -18,6 +20,8 @@ export const ADAPTERS: Partial<Record<AgentId, AgentAdapter>> = {
   claude,
   codex,
   aider,
+  cursor,
+  opencode,
 }
 
 export function adapter(id: AgentId): AgentAdapter | undefined {
@@ -50,11 +54,18 @@ export async function detect(a: AgentAdapter): Promise<AgentInfo> {
   const detail = present && a.readAuth ? a.readAuth() : null
   const expiresAt = detail?.expiresAt ?? null
   const expired = expiresAt !== null && expiresAt <= Date.now()
+  /*
+   * Some CLIs write their config file on first launch and keep it through a
+   * logout — Cursor's `cli-config.json` is there whether or not anyone is
+   * signed in. For those, existence cannot even be the floor, so `readAuth`
+   * is allowed to say so outright. Saying nothing still means nothing.
+   */
+  const signedOut = detail?.authed === false
 
   return {
     id: a.id,
     installed,
-    authed: present && !expired,
+    authed: present && !expired && !signedOut,
     version,
     expiresAt,
     plan: detail?.plan ?? null,

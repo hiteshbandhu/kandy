@@ -90,7 +90,16 @@ export type AgentAdapter = {
    * difference between "there is a file" and "you can actually run something".
    * Omit it for an agent that validates its own setup.
    */
-  readAuth?: () => { expiresAt: number | null; plan: string | null } | null
+  readAuth?: () => {
+    expiresAt: number | null
+    plan: string | null
+    /**
+     * Whether anyone is signed in at all, for CLIs whose credential file
+     * outlives the sign-in. Omit it when the file's existence is the signal —
+     * absent means "not asked", never "no".
+     */
+    authed?: boolean
+  } | null
   spawn(opts: SpawnOptions): SpawnSpec
   /** One line of stdout → zero or more events. */
   parse(line: string): AgentEvent[]

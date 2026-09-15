@@ -117,11 +117,54 @@ The `codex exec --json` event vocabulary:
 
 Codex reports tokens but no dollar cost.
 
-**Cursor** — `cursor-agent -p --output-format stream-json`, `--stream-partial-output` for text
-deltas. Events: `system`, `assistant`, `tool_call`, `result`. `--resume <chatId>`.
+**Cursor** — `cursor-agent -p --output-format stream-json --trust`. Events: `system`,
+`thinking`, `assistant`, `tool_call`, `result`. Session id arrives on the `system`/`init`
+frame and on every line after it; resume via `--resume <chatId>`.
 
-**opencode** — `opencode acp` speaks Agent Client Protocol over stdio as ndjson. A real
-protocol beats scraping stdout; make this the reference adapter and shape the others toward it.
+`--trust` is not optional. Cursor refuses an untrusted workspace by printing
+`⚠ Workspace Trust Required` and exiting **zero** — a run that did nothing and looked like a
+success. kandy spawns into a worktree the user already asked an agent to work in, so the
+decision was made before the process started. The banner is parsed anyway: a flag can be
+dropped by a future version, and a silent no-op must not be silent twice.
+
+`-p` already grants every tool including write and shell, so an approval mode is not what
+repo policy buys — the OS sandbox is. Repo passes `--sandbox enabled`; full access passes
+`--force --sandbox disabled`. A refusal therefore arrives as an ordinary non-zero exit with
+the operating system's phrasing on stderr, so — as for Codex — an actual failure is required
+before the wording is consulted at all.
+
+A tool's identity is the *key* inside `tool_call`, not a field: `{ shellToolCall: { args,
+result } }`. The name is derived from the key so a tool Cursor adds later still appears.
+`result` is `{ success }` or `{ failure }`. Cursor reports tokens but no dollar figure, and
+unlike Codex its `inputTokens` *excludes* the cache buckets, so they add rather than subtract.
+The model on the init frame is a display name — "Cursor Grok 4.6 High Fast" — never a model
+id, so it is not used to price anything.
+
+**opencode** — `opencode run --format json`. Every line is one flat object,
+`{ type, timestamp, sessionID, ...data }`, with types `step_start`, `text`, `reasoning`,
+`tool_use`, `step_finish` and `error`. Session id is `sessionID`, camel-cased, on every line;
+resume via `-s <id>`.
+
+This is *not* the `opencode acp` route sketched earlier in this document. Agent Client
+Protocol is bidirectional JSON-RPC and needs a stateful client that answers requests; the
+`AgentAdapter` contract here is one line of stdout in, zero or more events out. Adopting ACP
+means reshaping that contract — worth doing as the reference adapter, but it is a change to
+how every agent is driven, not the addition of one. `run --format json` is defined in
+opencode's own `packages/opencode/src/cli/cmd/run.ts` and fits the contract as it stands.
+
+Two consequences of that file worth knowing. `tool_use` is only emitted once a call has
+completed or errored, so there is no started frame to pair with and none is invented.
+And a permission refusal never becomes JSON at all — opencode prints
+`! permission requested: <permission> (<patterns>); auto-rejecting` as prose on the same
+stdout and carries on, so the adapter matches that whole phrase to recover the block.
+
+opencode's default is to allow, and `--auto` additionally approves whatever the user's own
+config marks `ask`. Repo policy therefore means "the user's permission rules stand"; full
+access is what overrides them. Explicit `deny` rules survive either way — opencode enforces
+those itself. It computes its own cost from models.dev prices, which beats anything kandy
+could derive, except that a subscription or a local model reports `0.00` and zero is
+indistinguishable from free; a zero cost is handed back unpriced, with the tokens, rather
+than recorded as a run that cost nothing.
 
 **Gemini** — `gemini -o json`. Known gap: headless JSON output does not reliably surface the
 session id, so resume is unreliable. Ship it without resume rather than faking it.
@@ -147,8 +190,8 @@ and flags follow its [scripting interface](https://aider.chat/docs/scripting.htm
 
 ## What this means for the Usage page
 
-Both of the agents kandy ships adapters for are normally used on a plan — Claude Code on a
-subscription, Codex on a ChatGPT account. On a plan there is no per-token bill, so **no figure on
+Every agent kandy ships an adapter for is normally used on a plan — Claude Code on a
+subscription, Codex on a ChatGPT account, Cursor and opencode on theirs. On a plan there is no per-token bill, so **no figure on
 the Usage page is a charge anyone makes.**
 
 On top of that, only Claude reports a dollar amount for a turn at all. Codex reports tokens and

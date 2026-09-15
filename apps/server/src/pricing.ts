@@ -1,7 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import path from "node:path"
-import { configuredModel } from "./agents/codex.js"
+import { configuredModel as codexModel } from "./agents/codex.js"
+import { configuredModel as cursorModel } from "./agents/cursor.js"
+import { configuredModel as opencodeModel } from "./agents/opencode.js"
 
 /**
  * Prices for agents that report tokens but not money.
@@ -96,6 +98,21 @@ type Menu = {
   keep: RegExp
   /** Entries that exist in the table but the agent cannot actually run. */
   drop: RegExp
+  /**
+   * Rewrite a surviving table key into the id this CLI actually takes. The
+   * table is keyed bare — `claude-opus-5` — while opencode addresses models as
+   * `provider/model`, and an id in the wrong dialect is a menu entry that
+   * fails at spawn time.
+   */
+  map?: (name: string) => string
+}
+
+/** Which opencode provider serves a model, by the shape of its name. */
+function opencodeProvider(name: string): string | null {
+  if (name.startsWith("claude-")) return "anthropic"
+  if (/^(?:gpt|o\d)/.test(name)) return "openai"
+  if (name.startsWith("gemini-")) return "google"
+  return null
 }
 
 /**
@@ -135,8 +152,44 @@ const MENU: Record<string, Menu> = {
     drop: /(vision|embedding|tuned|thinking)/,
   },
   grok: { aliases: [], keep: /^grok-\d/, drop: /(vision|image)/ },
-  cursor: { aliases: [], keep: /.^/, drop: /.^/ },
-  opencode: { aliases: [], keep: /.^/, drop: /.^/ },
+  /*
+   * Cursor's catalogue is its own, and it is account-specific: the ids are
+   * things like `cursor-grok-4.6-high` and `claude-opus-5-thinking-high`,
+   * which appear in no price table, and which of them you may run depends on
+   * your plan. `cursor-agent --list-models` is the only authority, and it
+   * needs the CLI, a network round trip and a sign-in to answer.
+   *
+   * So the table contributes nothing here and is not consulted. What is
+   * offered is `auto` — always available, and what Cursor picks by default —
+   * plus whatever this machine is already configured for, which is the one id
+   * known to work. Anything else the user can type.
+   */
+  cursor: { aliases: ["auto"], keep: /.^/, drop: /.^/ },
+  /*
+   * opencode is provider-agnostic and addresses models as `provider/model`,
+   * so the menu is the same set aider would see, rewritten into that dialect.
+   */
+  opencode: {
+    aliases: [],
+    keep: /^(?:claude-(?:opus|sonnet|haiku|fable)-\d|gpt-\d|gemini-[23])/,
+    drop: /(audio|realtime|search|transcribe|tts|image|embedding|instruct|chat-latest|:|\/|-\d{8})/,
+    map: (name) => {
+      const provider = opencodeProvider(name)
+      return provider ? `${provider}/${name}` : name
+    },
+  },
+}
+
+/**
+ * Agents that record their own choice of model somewhere we can read.
+ *
+ * Whatever a CLI is already set up to run is the one id known to work on this
+ * machine, which a price table can only ever guess at.
+ */
+const CONFIGURED: Record<string, () => string | null> = {
+  codex: codexModel,
+  cursor: cursorModel,
+  opencode: opencodeModel,
 }
 
 export function modelsFor(agent: string): string[] {
@@ -145,7 +198,7 @@ export function modelsFor(agent: string): string[] {
 
   // The configured model is known-good even when the table has never heard of
   // it, so it always belongs on the menu.
-  const configured = agent === "codex" ? configuredModel() : null
+  const configured = CONFIGURED[agent]?.() ?? null
   const seed = configured ? [configured] : []
   if (!table) return [...seed, ...menu.aliases]
 
@@ -158,6 +211,7 @@ export function modelsFor(agent: string): string[] {
     .map(([name]) => name)
     .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
     .slice(0, 12)
+    .map((name) => menu.map?.(name) ?? name)
 
   return [...new Set([...seed, ...menu.aliases, ...named])]
 }
@@ -175,7 +229,14 @@ export function defaultModelFor(agent: string): string | null {
   if (agent === "claude") return "opus"
   // Whatever the agent is already configured to run is the one choice we know
   // works on this machine; a table entry is only ever a guess.
-  if (agent === "codex") return configuredModel() ?? modelsFor("codex")[0] ?? null
+  if (agent === "codex") return codexModel() ?? modelsFor("codex")[0] ?? null
+  /*
+   * Cursor and opencode both resolve a model themselves — from their own
+   * config, then the last one used — and both catalogues are wider than
+   * anything kandy can verify. Picking for them would override a working
+   * choice the user already made with a guess off a price list.
+   */
+  if (agent === "cursor" || agent === "opencode") return null
   return modelsFor(agent)[0] ?? null
 }
 

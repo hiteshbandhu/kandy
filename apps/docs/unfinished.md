@@ -21,12 +21,28 @@ our choosing rather than auto-denying them. The work is real but it is a
 feature, not a rewrite. Codex's non-interactive `exec` has no equivalent, so
 this will land for one agent before the others.
 
-## Three agents, and one of them unproven
+## Five agents, and not all of them proven
 
-Claude Code and Codex are used daily. The aider adapter is written and tested
-against captured output, but has never driven a real aider install — it was
-built on a machine that did not have one. Cursor, opencode, Gemini and Grok
-appear in the data model and the UI and do nothing.
+Claude Code and Codex are used daily.
+
+The Cursor adapter is written and tested against output captured from a real
+`cursor-agent` run — including a real sandbox refusal — and detection was
+exercised against a real sign-in. It has not yet driven a note end to end
+through kandy's own runner.
+
+The aider and opencode adapters have never driven a real install: neither was
+present on the machine they were built on. aider was written against captured
+output; opencode was written against its own `run.ts`, which defines the
+`--format json` wire format, rather than against docs — but source is not a run,
+and the first real one will find something.
+
+opencode is also driven the plain way, over `run --format json`, not over
+`opencode acp`. ACP is bidirectional JSON-RPC and wants a stateful client;
+`AgentAdapter` is a line in and events out. Making ACP the reference adapter is
+still the right shape, and it is a change to how every agent is driven rather
+than a sixth adapter.
+
+Gemini and Grok appear in the data model and the UI and do nothing.
 
 ## Codex cost is an estimate
 

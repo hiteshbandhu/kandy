@@ -61,8 +61,44 @@ test("no menu contains a dated id or a deployment name", () => {
 })
 
 test("agents with no model menu get an empty one, not everything", () => {
-  assert.deepEqual(modelsFor("cursor"), [])
   assert.deepEqual(modelsFor("nonexistent-agent"), [])
+})
+
+test("cursor is offered auto, because its catalogue is not the price table's", () => {
+  // Cursor's ids are its own — `cursor-grok-4.6-high`, `claude-opus-5-thinking-high`
+  // — and which of them you may run depends on your plan. Filtering the table
+  // would offer a menu of things the CLI rejects, so the table is not consulted
+  // at all; `auto` always works, and anything else the user can type.
+  const menu = modelsFor("cursor")
+  assert.ok(menu.includes("auto"))
+  for (const m of menu) {
+    assert.ok(!m.includes("/"), `${m} is not a cursor model id`)
+  }
+})
+
+test("opencode is offered models in the provider/model form it takes", () => {
+  // opencode addresses models as `provider/model`. A bare table key is a menu
+  // entry that fails at spawn time.
+  const menu = modelsFor("opencode")
+  assert.ok(menu.length > 0)
+  for (const m of menu) {
+    assert.match(m, /^(anthropic|openai|google)\/./, `${m} is not addressable by opencode`)
+    assert.ok(!/-\d{8}$/.test(m), `${m} is dated`)
+  }
+})
+
+test("a provider-prefixed opencode id still prices", () => {
+  // modelsFor and priceUsage have to agree, or every opencode run is unpriced.
+  const [first] = modelsFor("opencode")
+  assert.ok(first)
+  assert.ok(priceUsage(first, USAGE), `${first} came off the menu but does not price`)
+})
+
+test("cursor and opencode keep the model choice they already made", () => {
+  // Both resolve a model themselves, from their own config and then the last
+  // one used. Picking for them would override a working choice with a guess.
+  assert.equal(defaultModelFor("cursor"), null)
+  assert.equal(defaultModelFor("opencode"), null)
 })
 
 test("a new board gets a default that the agent can actually run", () => {
