@@ -85,13 +85,16 @@ not.
 
 ## Access
 
-Two levels, per note — and a default per board in **Settings → Agent access**:
+Two levels, per note — and a default per board in **Settings → Agent access**.
+New boards get full access unless you picked repo only at setup (`kandy setup`)
+or in the **New board** dialog.
 
-- **Repo only** (the default) — the agent edits files freely in its worktree.
+- **Full access** (the default) — it can run anything, without asking: the
+  agent's own "skip permissions" mode.
+- **Repo only** — the agent edits files freely in its worktree.
   Shell commands are put to you first by Claude Code, and refused outright by
   agents that can't ask — the note then shows as **blocked**, with a one-click
   way to continue with full access.
-- **Full access** — it can run anything, without asking.
 
 <p class="k-shot"><img class="only-light" src="/shots/site/askpane-light.webp" alt="A note waiting on you: the agent asks to run a shell command, with Allow once and Deny"><img class="only-dark" src="/shots/site/askpane-dark.webp" alt="A note waiting on you: the agent asks to run a shell command, with Allow once and Deny"></p>
 

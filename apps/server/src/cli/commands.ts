@@ -11,6 +11,7 @@ import type { Reclaimable } from "../gc.js"
 import { findReclaimable, findStrippable, strip, heldBack, humanBytes, reclaim } from "../gc.js"
 import { originOf } from "../worktree.js"
 import { STATE_DIR } from "../paths.js"
+import { preferredPolicy } from "./setup.js"
 
 const exec = promisify(execFile)
 const out = (s = "") => process.stdout.write(s + "\n")
@@ -51,7 +52,7 @@ export async function adoptHere(port: number): Promise<{ board: Board; view: Boa
     out(berry("  not a git repository") + dim(` — ${process.cwd()}`))
     return null
   }
-  const { board } = await api.createBoard(check.name ?? "board", check.path)
+  const { board } = await api.createBoard(check.name ?? "board", check.path, undefined, undefined, preferredPolicy())
   out(`  ${mint("created board")} ${bold(board.name)} ${dim(check.path)}`)
   return { board, view: await api.view(board.id) }
 }

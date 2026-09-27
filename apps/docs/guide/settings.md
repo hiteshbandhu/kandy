@@ -26,8 +26,12 @@ What a new note on this board starts as:
 
 | | What it means |
 | --- | --- |
-| **Repo only** (default) | The agent edits files in its worktree. Anything else — running tests, installing, a build — is asked about first by Claude Code, and refused by agents that can't ask. |
-| **Full access** | Notes can run any command, without asking. kandy asks you to confirm before making this the default. |
+| **Full access** (default) | Notes can run any command, without asking — each agent's own "skip permissions" mode. |
+| **Repo only** | The agent edits files in its worktree. Anything else — running tests, installing, a build — is asked about first by Claude Code, and refused by agents that can't ask. |
+
+A new board starts with what you chose when you first ran kandy (`kandy setup`
+asks again), or in the **New board** dialog — full access if you never chose.
+Switching an existing board to full access asks you to confirm first.
 
 A note can be changed on its own at any time, and notes already on the board
 keep what they have. Each [agent's page](/agents/) says exactly what the two

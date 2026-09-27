@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import type { KandyClient } from "@kandy/client"
-import type { Board, RepoCheck } from "@kandy/core"
+import type { Board, Policy, RepoCheck } from "@kandy/core"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/ui"
 import { RepoPicker } from "@/features/boards/RepoPicker"
 import { Button } from "@/ui"
 import { Input } from "@/ui"
+import { cn } from "@/lib/utils"
 
 /**
  * A board is a repo, so this dialog has one real question.
@@ -37,6 +38,7 @@ export function NewBoardDialog({
   const [check, setCheck] = useState<RepoCheck | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [policy, setPolicy] = useState<Policy>("full")
 
   const taken = useMemo(() => new Set(boards.map((b) => b.repoPath)), [boards])
   // Only a path can be checked; a half-typed repo name is a search, not a guess
@@ -65,6 +67,7 @@ export function NewBoardDialog({
     setName("")
     setCheck(null)
     setError(null)
+    setPolicy("full")
   }
 
   async function create() {
@@ -72,7 +75,7 @@ export function NewBoardDialog({
     setBusy(true)
     setError(null)
     try {
-      const { board } = await client.createBoard(name.trim() || check.name || "board", check.path)
+      const { board } = await client.createBoard(name.trim() || check.name || "board", check.path, undefined, undefined, policy)
       onCreated(board.id)
       onOpenChange(false)
       reset()
@@ -123,6 +126,28 @@ export function NewBoardDialog({
                 onKeyDown={(e) => e.key === "Enter" && void create()}
               />
             </label>
+          )}
+
+          {/* What its notes may do. Full access by default: repo only
+              refuses most commands, builds and tests included. Each board
+              can change it later in its settings. */}
+          {check?.isRepo && (
+            <div className="flex items-center gap-3">
+              <span className="label shrink-0">Agents</span>
+              <div className="flex gap-2">
+                <Button
+                  variant={policy === "full" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPolicy("full")}
+                  className={cn(policy === "full" && "border-lemon/30 bg-lemon-bg text-lemon")}
+                >
+                  Full access
+                </Button>
+                <Button variant={policy === "repo" ? "default" : "outline"} size="sm" onClick={() => setPolicy("repo")}>
+                  Repo only
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 

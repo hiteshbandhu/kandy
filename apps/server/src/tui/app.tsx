@@ -84,6 +84,7 @@ import { palette, toneProps, type Palette, type Tone } from "./theme.js"
 import { fit, textWidth, tildify, truncate, truncateStart, wrap } from "./text.js"
 import { FOLLOWING, scroll, toBottom, toTop, transcriptRows, viewStart, type Follow, type Seg } from "./transcript.js"
 import { Fill, Hints, Rule, Segs, Split } from "./ui.js"
+import { preferredPolicy } from "../cli/setup.js"
 
 export type AppProps = {
   client: KandyClient
@@ -502,7 +503,7 @@ export function App({ client, live, boards: initialBoards, boardId: initialBoard
       return flash(`${existing.name} is already a board`, "dim")
     }
     const created = await act(
-      () => client.createBoard(check.name ?? "board", check.path, check.suggestedSetup ?? null, check.suggestedCarry ?? []),
+      () => client.createBoard(check.name ?? "board", check.path, check.suggestedSetup ?? null, check.suggestedCarry ?? [], preferredPolicy()),
       `Added ${check.name}`,
     )
     if (!created) return

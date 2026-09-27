@@ -564,9 +564,10 @@ async function handle(deps: ServerDeps, req: IncomingMessage, res: ServerRespons
         setup: body.setup === undefined ? check.suggestedSetup : body.setup,
         carry: body.carry ?? check.suggestedCarry,
         models,
-        // A new repo is repo-only until someone looks at it and decides
-        // otherwise. Full access is never something we pick for you.
-        defaultPolicy: body.defaultPolicy ?? "repo",
+        // Full access unless whoever added the board chose otherwise — at
+        // setup, or in the dialog. Repo only asks about or refuses anything
+        // outside the worktree, which stalls most real work.
+        defaultPolicy: body.defaultPolicy ?? "full",
         // How a teammate's runner will recognise its own clone of this repo.
         remote: check.remote ?? null,
       }),

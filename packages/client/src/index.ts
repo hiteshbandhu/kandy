@@ -105,12 +105,13 @@ export class KandyClient {
   checkRepo(path: string) {
     return this.req<RepoCheck>("GET", `/repo/check?path=${encodeURIComponent(path)}`)
   }
-  createBoard(name: string, repoPath: string, setup?: string | null, carry?: string[]) {
+  createBoard(name: string, repoPath: string, setup?: string | null, carry?: string[], defaultPolicy?: Policy) {
     return this.req<{ board: Board; seq: number }>("POST", "/boards", {
       name,
       repoPath,
       setup,
       carry,
+      defaultPolicy,
     })
   }
   setBoardSetup(boardId: string, setup: string | null, carry?: string[]) {

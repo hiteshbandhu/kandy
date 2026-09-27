@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Agents get full access by default.** New boards run their notes in each
+  agent's "skip permissions" mode. First-run setup asks which you want, and the
+  **New board** dialog has the choice too; repo only is still one setting away.
+  → [Board settings](https://hiteshbandhu.github.io/kandy/guide/settings)
+
 ## 0.2.0-alpha.3 — the terminal board is a kanban
 
 September 2026. **Extremely experimental** — see [Status](https://github.com/hiteshbandhu/kandy/tree/main/apps/docs/status.md). Install or

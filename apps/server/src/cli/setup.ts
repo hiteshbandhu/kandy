@@ -7,6 +7,7 @@ import { CONFIG_DIR, DB_PATH } from "../paths.js"
 import { explain, tailscaleStatus } from "../tailscale.js"
 import { banner, bold, dim, faint, lemon, mint } from "./banner.js"
 import { cmdJoin } from "./join.js"
+import type { Policy } from "@kandy/core"
 
 /**
  * The first time kandy runs, one question: how will you use it?
@@ -38,9 +39,21 @@ export function needsSetup(): boolean {
   return true
 }
 
-function remember(mode: Mode): void {
+function remember(mode: Mode, policy?: Policy): void {
   mkdirSync(CONFIG_DIR, { recursive: true })
-  writeFileSync(FILE, JSON.stringify({ mode, at: Date.now() }, null, 2) + "\n")
+  writeFileSync(FILE, JSON.stringify({ mode, ...(policy ? { policy } : {}), at: Date.now() }, null, 2) + "\n")
+}
+
+/**
+ * What new boards on this machine let agents do: chosen at setup, and full
+ * access when nobody chose. A board's own setting changes it afterwards.
+ */
+export function preferredPolicy(): Policy {
+  try {
+    return (JSON.parse(readFileSync(FILE, "utf8")) as { policy?: Policy }).policy === "repo" ? "repo" : "full"
+  } catch {
+    return "full"
+  }
 }
 
 export function setupMode(): Mode | null {
@@ -88,8 +101,19 @@ export async function runSetup(): Promise<boolean> {
     const pick = await ask(`  ${dim("›")} `)
     const mode: Mode = pick === "2" ? "team" : pick === "3" ? "hub" : "solo"
 
+    // A hub runs no agents, so it has nothing to ask about access.
+    let policy: Policy | undefined
+    if (mode !== "hub") {
+      out()
+      out(`  ${bold("What may agents do?")} ${faint("for new boards — each board can change it later")}`)
+      out(`    ${bold("1")}  Full access: run anything, never ask   ${faint("(enter)")}`)
+      out(`    ${bold("2")}  Repo only: edit the worktree, ask before anything else`)
+      out()
+      policy = (await ask(`  ${dim("›")} `)) === "2" ? "repo" : "full"
+    }
+
     if (mode === "solo") {
-      remember("solo")
+      remember("solo", policy)
       // Straight on to the board — its footer carries the keys. The lines
       // below are for the case where there is no repository here to show.
       if (process.stdout.isTTY) return true
@@ -113,7 +137,7 @@ export async function runSetup(): Promise<boolean> {
       }
       out()
       const code = await cmdJoin(url, { repos: [] })
-      if (code === 0) remember("team")
+      if (code === 0) remember("team", policy)
       return false
     }
 
