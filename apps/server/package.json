@@ -6,11 +6,11 @@
     "kandy": "./dist/bin.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js dist/bin.js && node scripts/stage-web.mjs",
+    "build": "tsc -p tsconfig.json && node scripts/exec-bit.mjs && node scripts/stage-web.mjs",
     "dev": "node --watch --experimental-strip-types src/cli.ts",
     "start": "node dist/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsc -p tsconfig.json && chmod +x dist/cli.js dist/bin.js && node --test"
+    "test": "tsc -p tsconfig.json && node scripts/exec-bit.mjs && node --test"
   },
   "dependencies": {
     "@kandy/client": "workspace:*",

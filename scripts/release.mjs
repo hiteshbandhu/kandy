@@ -23,7 +23,19 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const out = path.join(root, "release")
 const stage = path.join(out, "stage")
 const read = (p) => JSON.parse(readFileSync(path.join(root, p), "utf8"))
-const run = (cmd, args, cwd = root) => execFileSync(cmd, args, { cwd, stdio: "inherit" })
+
+/**
+ * Run the package managers that build and pack the release.
+ *
+ * Windows exposes npm and pnpm as .cmd shims, which execFileSync cannot start
+ * without a shell. The Windows arguments below are fixed literals. Keep paths
+ * in cwd rather than this command string so cmd.exe cannot reinterpret them.
+ */
+const isWindows = process.platform === "win32"
+const run = (cmd, args, cwd = root) =>
+  isWindows
+    ? execFileSync([cmd, ...args].join(" "), { cwd, stdio: "inherit", shell: true })
+    : execFileSync(cmd, args, { cwd, stdio: "inherit" })
 
 if (!process.argv.includes("--no-build")) run("pnpm", ["build"])
 
@@ -70,7 +82,7 @@ writeFileSync(
   ) + "\n",
 )
 
-run("npm", ["pack", "--silent", "--pack-destination", out], stage)
+run("npm", ["pack", "--silent", "--pack-destination", ".."], stage)
 const [tgz] = readdirSync(out).filter((f) => f.endsWith(".tgz"))
 // A fixed name as well, so `releases/latest/download/kandy.tgz` is one URL forever.
 copyFileSync(path.join(out, tgz), path.join(out, "kandy.tgz"))

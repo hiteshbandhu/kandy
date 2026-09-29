@@ -63,40 +63,59 @@ export function resolve(dir: string): string {
   return path.resolve(p || homedir())
 }
 
-/**
- * Places a developer's repos actually live, so the picker opens somewhere
- * useful instead of at `/`.
- */
-export function suggestions(): Entry[] {
-  const home = homedir()
-  const candidates = ["Developer", "Projects", "code", "src", "work", "repos", "dev", "git"]
+const codeDirs = ["Developer", "Projects", "code", "src", "work", "repos", "dev", "git", "Documents", "Programming"]
+
+type SearchLocations = { home: string; drives: string[]; extra: string[] }
+
+function searchLocations(): SearchLocations {
+  return { home: homedir(), drives: driveRoots(), extra: configuredRoots() }
+}
+
+export function suggestions(locations = searchLocations()): Entry[] {
+  const { home, drives, extra } = locations
   const out: Entry[] = [{ name: "Home", path: home, isRepo: false }]
-  for (const c of candidates) {
-    const p = path.join(home, c)
-    if (existsSync(p)) out.push({ name: c, path: p, isRepo: existsSync(path.join(p, ".git")) })
+  const seen = new Set([home])
+  const add = (p: string) => {
+    if (seen.has(p) || !existsSync(p)) return
+    seen.add(p)
+    out.push({ name: path.basename(p) || p, path: p, isRepo: existsSync(path.join(p, ".git")) })
   }
+  for (const c of codeDirs) add(path.join(home, c))
+  for (const drive of drives) {
+    add(drive)
+    for (const c of codeDirs) add(path.join(drive, c))
+  }
+  for (const dir of extra) add(dir)
   return out
+}
+
+function driveRoots(): string[] {
+  if (process.platform !== "win32") return []
+  return Array.from({ length: 26 }, (_, i) => `${String.fromCharCode(65 + i)}:\\`)
+    .filter((root) => existsSync(root))
+}
+
+function configuredRoots(): string[] {
+  return (process.env.KANDY_REPO_DIRS ?? "")
+    .split(path.delimiter)
+    .map((dir) => dir.trim())
+    .filter(Boolean)
+    .map(resolve)
 }
 
 /**
  * The git repositories on this machine, most recently touched first.
  *
- * Browsing a filesystem to find a repo means reading past Applications and
- * DaVinci Resolve Media to get to the four folders that could ever be an
- * answer. This looks one level inside the places people keep code and returns
- * only directories that actually contain a `.git`, which is the list the
- * dialog was asking you to assemble by hand.
- *
- * One level deep on purpose. A full scan of a home directory is slow, hits
- * node_modules and Library, and finds vendored repos nobody wants to adopt.
- * Anything kept somewhere unusual still has the path field and the native
- * picker.
+ * The old home-only search missed a repo directly in home or on another
+ * Windows drive. Search immediate children of home and each drive root, plus
+ * one level inside common code directories and KANDY_REPO_DIRS. Stop there:
+ * deeper scans are slow and find vendored repos in places such as node_modules.
  */
-export function repos(limit = 40): Entry[] {
-  const home = homedir()
-  const roots = ["Developer", "Projects", "code", "src", "work", "repos", "dev", "git", "Documents"]
+export function repos(limit = 40, locations = searchLocations()): Entry[] {
+  const { home, drives, extra } = locations
   const found: { entry: Entry; at: number }[] = []
   const seen = new Set<string>()
+  const scanned = new Set<string>()
 
   const consider = (dir: string) => {
     if (seen.has(dir) || !existsSync(path.join(dir, ".git"))) return
@@ -110,10 +129,9 @@ export function repos(limit = 40): Entry[] {
     found.push({ entry: { name: path.basename(dir), path: dir, isRepo: true }, at })
   }
 
-  consider(home)
-  for (const r of roots) {
-    const root = path.join(home, r)
-    if (!existsSync(root)) continue
+  const scan = (root: string) => {
+    if (scanned.has(root) || !existsSync(root)) return
+    scanned.add(root)
     consider(root)
     let kids: string[] = []
     try {
@@ -121,20 +139,27 @@ export function repos(limit = 40): Entry[] {
         .filter((d) => d.isDirectory() && !d.name.startsWith("."))
         .map((d) => path.join(root, d.name))
     } catch {
-      continue
+      return
     }
     for (const k of kids) consider(k)
   }
+
+  scan(home)
+  for (const name of codeDirs) scan(path.join(home, name))
+  for (const drive of drives) {
+    scan(drive)
+    for (const name of codeDirs) scan(path.join(drive, name))
+  }
+  for (const root of extra) scan(root)
 
   return found.sort((a, b) => b.at - a.at).slice(0, limit).map((f) => f.entry)
 }
 
 /**
- * The OS folder chooser, on macOS.
+ * The macOS folder chooser for clients of POST /repo/pick.
  *
- * The daemon and the browser are the same machine in normal use, so this is a
- * real native dialog rather than a web imitation of one. Everywhere else the
- * in-app browser above is the answer.
+ * The web picker uses list() on every platform. This endpoint remains for
+ * existing clients, though a runner may have no foreground desktop to show it.
  */
 export async function nativePick(): Promise<string | null> {
   if (process.platform !== "darwin") return null

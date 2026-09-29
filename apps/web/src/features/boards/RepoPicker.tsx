@@ -1,23 +1,23 @@
 import { useEffect, useMemo, useState } from "react"
-import { FolderGit2, Search } from "lucide-react"
+import { ChevronLeft, Folder, FolderGit2, Search } from "lucide-react"
 import type { KandyClient } from "@kandy/client"
-import type { DirEntry } from "@kandy/core"
+import type { DirEntry, Listing } from "@kandy/core"
 import { Button } from "@/ui"
 import { cn, tailPath } from "@/lib/utils"
+
+function repoParent(repo: string): string {
+  const shortened = repo.replace(/^(?:[A-Za-z]:\\Users\\|\/Users\/)[^\\/]+/, "~")
+  const parent = shortened.replace(/[\\/][^\\/]+$/, "")
+  return /^[A-Za-z]:$/.test(parent) ? `${parent}\\` : parent
+}
 
 /**
  * Choosing the repo, in one field.
  *
- * This replaced a folder tree and a mode toggle. Browsing meant reading past
- * Applications and DaVinci Resolve Media to reach the four directories that
- * could ever be an answer, and "type a path" was a second mode you had to
- * switch into — so the dialog asked how you wanted to work before it asked
- * anything about your repo.
- *
- * One field does both. Typing filters the repos the daemon found; typing
- * something shaped like a path is taken as one, because someone who knows
- * where their repo lives shouldn't have to find a different control for it.
- * The native chooser stays for anything kept somewhere unusual.
+ * The field filters the repos found by the runner and also accepts a path.
+ * Browse opens the runner's directory listing for repos outside the shallow
+ * search. A native dialog would depend on the runner having a foreground
+ * desktop, which a background runner on Windows may not have.
  */
 export function RepoPicker({
   client,
@@ -37,6 +37,20 @@ export function RepoPicker({
   const [repos, setRepos] = useState<DirEntry[]>([])
   const [pick, setPick] = useState(0)
   const [browsing, setBrowsing] = useState(false)
+  const [listing, setListing] = useState<Listing | null>(null)
+  const [browseError, setBrowseError] = useState<string | null>(null)
+
+  async function openDirectory(dir?: string) {
+    setBrowsing(true)
+    setBrowseError(null)
+    try {
+      setListing(await client.browse(dir))
+    } catch {
+      setBrowseError("Could not open this folder. Choose another location.")
+    } finally {
+      setBrowsing(false)
+    }
+  }
 
   useEffect(() => {
     let stale = false
@@ -51,7 +65,7 @@ export function RepoPicker({
 
   /* A path is anything with a separator or a leading ~ — the one shape that
      can't also be someone searching for a repo by name. */
-  const isPath = /[/~]/.test(query)
+  const isPath = /[\\/~]/.test(query)
 
   const hits = useMemo(() => {
     if (isPath) return []
@@ -91,7 +105,7 @@ export function RepoPicker({
             isPath && "font-mono",
           )}
           onKeyDown={(e) => {
-            if (hits.length === 0) return
+            if (listing || hits.length === 0) return
             if (e.key === "ArrowDown") {
               e.preventDefault()
               setPick((i) => (i + 1) % hits.length)
@@ -100,7 +114,8 @@ export function RepoPicker({
               setPick((i) => (i - 1 + hits.length) % hits.length)
             } else if (e.key === "Enter" && !isPath) {
               e.preventDefault()
-              onPick(hits[pick]!.path)
+              const selected = hits[pick] ?? hits[0]
+              if (selected) onPick(selected.path)
             }
           }}
         />
@@ -109,22 +124,21 @@ export function RepoPicker({
           variant="ghost"
           size="sm"
           disabled={browsing}
-          onClick={async () => {
-            setBrowsing(true)
-            try {
-              const { path } = await client.pickFolder()
-              if (path) onPick(path)
-            } finally {
-              setBrowsing(false)
+          onClick={() => {
+            if (listing) {
+              setListing(null)
+              setBrowseError(null)
+            } else {
+              void openDirectory()
             }
           }}
           className="-mr-1.5 shrink-0 text-dim"
         >
-          {browsing ? "Choosing…" : "Browse…"}
+          {browsing ? "Opening…" : listing ? "Close" : "Browse…"}
         </Button>
       </div>
 
-      {hits.length > 0 && (
+      {!listing && hits.length > 0 && (
         <ul className="mt-2 overflow-hidden rounded-lg border border-hairline p-1.5">
           {hits.map((r, i) => (
             <li key={r.path}>
@@ -143,13 +157,81 @@ export function RepoPicker({
                 {/* The parent, not the path: the name is already the row's
                     subject, and repeating it makes the line read twice. */}
                 <span className="min-w-0 flex-1 truncate text-right font-mono text-micro text-faint">
-                  {tailPath(r.path.replace(/^\/Users\/[^/]+/, "~").replace(/\/[^/]+$/, ""), 30)}
+                  {tailPath(repoParent(r.path), 30)}
                 </span>
               </button>
             </li>
           ))}
         </ul>
       )}
+      {listing && (
+        <div className="mt-2 rounded-lg border border-hairline p-2">
+          <div className="mb-2 flex items-center gap-2">
+            {listing.parent && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={browsing}
+                onClick={() => {
+                  if (listing.parent) void openDirectory(listing.parent)
+                }}
+                aria-label="Parent folder"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+            )}
+            <span className="min-w-0 flex-1 truncate font-mono text-micro text-dim" title={listing.path}>
+              {listing.path}
+            </span>
+            {listing.isRepo && (
+              <Button type="button" size="sm" onClick={() => onPick(listing.path)}>
+                Choose repo
+              </Button>
+            )}
+          </div>
+          <div className="max-h-52 overflow-y-auto">
+            {listing.entries.map((entry) => (
+              <button
+                key={entry.path}
+                type="button"
+                disabled={browsing}
+                onClick={() => void openDirectory(entry.path)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-raised/60"
+              >
+                {entry.isRepo
+                  ? <FolderGit2 className="size-3.5 shrink-0 text-faint" />
+                  : <Folder className="size-3.5 shrink-0 text-faint" />}
+                <span className="min-w-0 flex-1 truncate text-aux" title={entry.path}>
+                  {entry.name}
+                </span>
+                {entry.isRepo && <span className="text-micro text-faint">repo</span>}
+              </button>
+            ))}
+          </div>
+          {listing.suggestions.length > 0 && (
+            <div className="mt-2 border-t border-hairline pt-2">
+              <div className="mb-1 text-micro text-faint">Places</div>
+              <div className="flex flex-wrap gap-1">
+                {listing.suggestions.map((place) => (
+                  <Button
+                    key={place.path}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={browsing}
+                    onClick={() => void openDirectory(place.path)}
+                    title={place.path}
+                  >
+                    {place.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {browseError && <p role="alert" className="mt-2 text-micro text-red-500">{browseError}</p>}
     </div>
   )
 }

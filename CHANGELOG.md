@@ -17,6 +17,9 @@ kandy update
   nodejs.org installer first, since winget's list can be years out of date.
 - **An unreachable team hub on Tailscale** asks whether Tailscale is up here
   *and* whether the hub's machine is on.
+- **The board picker finds repos on other Windows drives and directly in home.**
+  Browse opens an in-app folder list instead of a native dialog, which never
+  appeared on Windows, and `KANDY_REPO_DIRS` can name extra places to search.
 - **Docs:** what has been tried on Windows 10, and how to get a new enough Node
   there. → [Status](https://github.com/hiteshbandhu/kandy/tree/main/apps/docs/status.md)
 
